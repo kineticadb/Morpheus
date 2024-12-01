@@ -250,6 +250,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         self._fields_max_length: dict[str, int] = {}
 
         for field in self._fields:
+            print("Auto ID : ", field.auto_id)
             if field.dtype == pymilvus.DataType.FLOAT_VECTOR:
                 self._vector_field = field.name
             else:
