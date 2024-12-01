@@ -313,7 +313,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         """
         # Ensure that there are no None values in the DataFrame entries.
         print("##### 1")
-        print(self._fillna_fields_dict.items())
+        print("__fillna dict : ", self._fillna_fields_dict.items())
         print(df.to_string(max_rows=3))
         for field_name, dtype in self._fillna_fields_dict.items():
             print(field_name, dtype.str())
