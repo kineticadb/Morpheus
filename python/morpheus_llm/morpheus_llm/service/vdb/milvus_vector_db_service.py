@@ -313,7 +313,9 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         # Ensure that there are no None values in the DataFrame entries.
         print("##### 1")
         print(self._fillna_fields_dict.items())
+        print(df.to_string(max_rows=3))
         for field_name, dtype in self._fillna_fields_dict.items():
+            print(field_name, dtype.str())
             if dtype in (pymilvus.DataType.VARCHAR, pymilvus.DataType.STRING):
                 print("##### 1 1")
                 df[field_name] = df[field_name].fillna("")
