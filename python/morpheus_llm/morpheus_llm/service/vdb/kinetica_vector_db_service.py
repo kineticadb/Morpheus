@@ -39,11 +39,6 @@ logger = logging.getLogger(__name__)
 
 IMPORT_EXCEPTION = None
 
-# Kinetica has a max string length in bytes of 65,535. Multi-byte characters like "ñ" will have a string length of 1, the
-# byte length encoded as UTF-8 will be 2
-# https://Kinetica.io/docs/limitations.md#Length-of-a-string
-MAX_STRING_LENGTH_BYTES = 65_535
-
 try:
     import gpudb
 
@@ -186,14 +181,6 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
 
         for col in record_type.columns:
             description[col.name] = (col.column_type, col.is_nullable, col.is_vector(), col.column_properties)
-            # print(col.name)
-            # print(col.column_type)
-            # print(type(col.column_type))
-            # for i, prop in enumerate(col.column_properties):
-            #     print(i, prop)
-            # print(col.is_nullable)
-            # if col.is_vector():
-            #     print(col.get_vector_dimensions())
 
         return description
 
@@ -727,7 +714,7 @@ class KineticaVectorDBService(VectorDBService):
 
         return resource.query(query, **kwargs)
 
-    async def similarity_search(self, name: str, **kwargs: dict[str, typing.Any]) -> list[dict]:
+    async def similarity_search(self, name: str, **kwargs: dict[str, typing.Any]) -> list[list[dict]]:
         """
         Perform a similarity search within the Kinetica table.
 
