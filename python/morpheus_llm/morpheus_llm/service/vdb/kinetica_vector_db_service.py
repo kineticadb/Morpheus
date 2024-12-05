@@ -39,9 +39,9 @@ logger = logging.getLogger(__name__)
 
 IMPORT_EXCEPTION = None
 
-# Milvus has a max string length in bytes of 65,535. Multi-byte characters like "ñ" will have a string length of 1, the
+# Kinetica has a max string length in bytes of 65,535. Multi-byte characters like "ñ" will have a string length of 1, the
 # byte length encoded as UTF-8 will be 2
-# https://milvus.io/docs/limitations.md#Length-of-a-string
+# https://Kinetica.io/docs/limitations.md#Length-of-a-string
 MAX_STRING_LENGTH_BYTES = 65_535
 
 try:
@@ -68,7 +68,7 @@ DEFAULT_DISTANCE_STRATEGY = DistanceStrategy.EUCLIDEAN
 
 class KineticaVectorDBResourceService(VectorDBResourceService):
     """
-    Represents a service for managing resources in a Milvus Vector Database.
+    Represents a service for managing resources in a Kinetica Vector Database.
 
     Parameters
     ----------
@@ -82,7 +82,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
 
     def __init__(self, name: str, schema: str, client: "GPUdb") -> None:
         if IMPORT_EXCEPTION is not None:
-            raise ImportError(IMPORT_ERROR_MESSAGE.format(package='pymilvus')) from IMPORT_EXCEPTION
+            raise ImportError(IMPORT_ERROR_MESSAGE.format(package='pyKinetica')) from IMPORT_EXCEPTION
 
         super().__init__()
 
@@ -116,7 +116,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         Parameters
         ----------
         data : list[list] | list[dict]
-            Data to be inserted into the collection.
+            Data to be inserted into the Kinetica table.
         **kwargs : dict[str, typing.Any]
             Extra keyword arguments specific to the vector database implementation.
 
@@ -142,7 +142,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         Parameters
         ----------
         df : DataFrameType
-            Dataframe to be inserted into the collection.
+            Dataframe to be inserted into the Kinetica table.
         **kwargs : dict[str, typing.Any]
             Extra keyword arguments specific to the vector database implementation.
 
@@ -158,14 +158,14 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         if is_cudf_type(collection_df):
             collection_df = collection_df.to_pandas()
 
-        # Note: dataframe columns has to be in the order of collection schema fields.s
+        # Note: dataframe columns has to be in the order of Kinetica table schema fields.s
         result = self._collection.insert_df(collection_df)
 
         return self._insert_result_to_dict(result=result)
 
     def describe(self, **kwargs: dict[str, typing.Any]) -> dict:
         """
-        Provides a description of the collection.
+        Provides a description of the Kinetica table.
 
         Parameters
         ----------
@@ -224,7 +224,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         if query is None:
             raise GPUdbException("'query' - a valid SQL query statement must be given ...")
 
-        logger.debug("Searching in collection: %s, query=%s, kwargs=%s", self._name, query, kwargs)
+        logger.debug("Searching in Kinetica table: %s, query=%s, kwargs=%s", self._name, query, kwargs)
         batch_size = kwargs.get("batch_size", 5000)
         sql_params = kwargs.get("sql_params", [])
         sql_opts = kwargs.get("sql_opts", {})
@@ -284,7 +284,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         k: int = 4,
         filter: dict[str, str] = None,
     ) -> dict:
-        """Query the collection."""
+        """Query the Kinetica table."""
         # if filter is not None:
         #     filter_clauses = []
         #     for key, value in filter.items():
@@ -373,7 +373,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
                                 k: int = 4,
                                 **kwargs: dict[str, typing.Any]) -> list[list[dict]]:
         """
-        Perform a similarity search within the collection.
+        Perform a similarity search within the Kinetica table.
 
         Parameters
         ----------
@@ -394,25 +394,25 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
 
         # Determine result metadata fields.
         output_fields = [x.name for x in self._fields if x.name != self._vector_field]
-        filter = kwargs.get("filter", "")
+        search_filter = kwargs.get("filter", "")
 
         results: list[list[dict]] = [self.similarity_search_by_vector(
             embedding=embedding,
             output_fields=output_fields,
             k=k,
-            filter=filter,
+            filter=search_filter,
         ) for embedding in embeddings]
 
         return results
 
     def update(self, data: list[typing.Any], **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
-        Update data in the collection.
+        Update data in the Kinetica table.
 
         Parameters
         ----------
         data : list[typing.Any]
-            Data to be updated in the collection.
+            Data to be updated in the Kinetica table.
         **kwargs : dict[str, typing.Any]
             Extra keyword arguments specific to upsert operation.
 
@@ -449,14 +449,13 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         records_to_insert = kwargs.get("records_to_insert", [])
         records_to_insert_str = kwargs.get("records_to_insert_str", [])
 
-
         result = self._collection.update_records(expressions, new_values_maps, records_to_insert, records_to_insert_str, options=options)
 
         return self._update_delete_result_to_dict(result=result)
 
     def delete(self, expr: str, **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
-        Delete vectors from the collection using expressions.
+        Delete vectors from the Kinetica table using expressions.
 
         Parameters
         ----------
@@ -468,7 +467,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         Returns
         -------
         dict[str, typing.Any]
-            Returns result of the given keys that are deleted from the collection.
+            Returns result of the given keys that are deleted from the Kinetica table.
         """
 
         result = self._collection.delete_records(expressions=[expr], **kwargs)
@@ -490,7 +489,7 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         Returns
         -------
         list[typing.Any]
-            Returns result rows of the given keys from the collection.
+            Returns result rows of the given keys from the Kinetica table.
         """
 
         result = None
@@ -515,15 +514,15 @@ class KineticaVectorDBResourceService(VectorDBResourceService):
         Returns
         -------
         int
-            Returns number of entities in the collection.
+            Returns number of entities in the Kinetica table.
         """
         return self._collection.count
 
     def drop(self, **kwargs: dict[str, typing.Any]) -> None:
         """
-        Drop a collection, index, or partition in the Milvus vector database.
+        Drop a Kinetica table, index, or partition in the Kinetica vector database.
 
-        This function allows you to drop a collection.
+        This function allows you to drop a Kinetica table.
 
         Parameters
         ----------
@@ -560,7 +559,7 @@ class KineticaVectorDBService(VectorDBService):
     port : str
         The port number for connecting to the Kinetica server.
     alias : str, optional
-        Alias for the Milvus connection, by default "default".
+        Alias for the Kinetica connection, by default "default".
     """
 
     def __init__(self,
@@ -602,16 +601,16 @@ class KineticaVectorDBService(VectorDBService):
         name : str
             Name of the table to be created. The name must be in the form 'schema_name.table_name'.
         overwrite : bool, optional
-            If True, the collection will be overwritten if it already exists, by default False.
+            If True, the Kinetica table will be overwritten if it already exists, by default False.
         **kwargs : dict
-            Additional keyword arguments containing collection configuration.
+            Additional keyword arguments containing Kinetica table configuration.
 
         Raises
         ------
         ValueError
             If the provided schema fields configuration is empty.
         """
-        logger.debug("Creating collection: %s, overwrite=%s, kwargs=%s", name, overwrite, kwargs)
+        logger.debug("Creating Kinetica table: %s, overwrite=%s, kwargs=%s", name, overwrite, kwargs)
 
         table_type: list[list[str]] = kwargs.get("type", [])
         if not self.has_store_object(name) and (table_type is None or len(table_type) == 0):
@@ -637,11 +636,11 @@ class KineticaVectorDBService(VectorDBService):
         Parameters
         ----------
         name : str
-            Name of the collection.
+            Name of the Kinetica table.
         df : DataFrameType
-            The dataframe to create the collection from.
+            The dataframe to create the Kinetica table from.
         overwrite : bool, optional
-            Whether to overwrite the collection if it already exists. Default is False.
+            Whether to overwrite the Kinetica table if it already exists. Default is False.
         **kwargs : dict[str, typing.Any]
             Extra keyword arguments specific to the vector database implementation.
         """
@@ -651,16 +650,16 @@ class KineticaVectorDBService(VectorDBService):
     def insert(self, name: str, data: list[list] | list[dict], **kwargs: dict[str,
                                                                               typing.Any]) -> dict[str, typing.Any]:
         """
-        Insert a collection specific data in the Milvus vector database.
+        Insert a collection specific data in the Kinetica vector database.
 
         Parameters
         ----------
         name : str
-            Name of the collection to be inserted.
+            Name of the Kinetica table to be inserted.
         data : list[list] | list[dict]
-            Data to be inserted in the collection.
+            Data to be inserted in the Kinetica table.
         **kwargs : dict[str, typing.Any]
-            Additional keyword arguments containing collection configuration.
+            Additional keyword arguments containing Kinetica table configuration.
 
         Returns
         -------
@@ -670,7 +669,7 @@ class KineticaVectorDBService(VectorDBService):
         Raises
         ------
         RuntimeError
-            If the collection not exists exists.
+            If the table not exists.
         """
 
         resource = self.load_resource(name)
@@ -678,16 +677,16 @@ class KineticaVectorDBService(VectorDBService):
 
     def insert_dataframe(self, name: str, df: DataFrameType, **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
-        Converts dataframe to rows and insert to a collection in the Milvus vector database.
+        Converts dataframe to rows and insert to a Kinetica table in the Kinetica vector database.
 
         Parameters
         ----------
         name : str
-            Name of the collection to be inserted.
+            Name of the Kinetica table to be inserted.
         df : DataFrameType
-            Dataframe to be inserted in the collection.
+            Dataframe to be inserted in the Kinetica table.
         **kwargs : dict[str, typing.Any]
-            Additional keyword arguments containing collection configuration.
+            Additional keyword arguments containing Kinetica table configuration.
 
         Returns
         -------
@@ -697,7 +696,7 @@ class KineticaVectorDBService(VectorDBService):
         Raises
         ------
         RuntimeError
-            If the collection not exists exists.
+            If the Kinetica table not exists.
         """
         resource = self.load_resource(name)
 
@@ -705,14 +704,14 @@ class KineticaVectorDBService(VectorDBService):
 
     def query(self, name: str, query: str = None, **kwargs: dict[str, typing.Any]) -> typing.Any:
         """
-        Query data in a collection in the Milvus vector database.
+        Query data in a Kinetica table in the Kinetica vector database.
 
-        This method performs a search operation in the specified collection/partition in the Milvus vector database.
+        This method performs a search operation in the specified Kinetica table/partition in the Kinetica vector database.
 
         Parameters
         ----------
         name : str
-            Name of the collection to search within.
+            Name of the Kinetica table to search within.
         query : str
             The search query, which can be a filter expression.
         **kwargs : dict
@@ -730,12 +729,12 @@ class KineticaVectorDBService(VectorDBService):
 
     async def similarity_search(self, name: str, **kwargs: dict[str, typing.Any]) -> list[dict]:
         """
-        Perform a similarity search within the collection.
+        Perform a similarity search within the Kinetica table.
 
         Parameters
         ----------
         name : str
-            Name of the collection.
+            Name of the Kinetica table.
         **kwargs : dict[str, typing.Any]
             Extra keyword arguments specific to the vector database implementation.
 
@@ -756,9 +755,9 @@ class KineticaVectorDBService(VectorDBService):
         Parameters
         ----------
         name : str
-            Name of the collection.
+            Name of the Kinetica table.
         data : list[typing.Any]
-            Data to be updated in the collection.
+            Data to be updated in the Kinetica table.
         **kwargs : dict[str, typing.Any]
             Extra keyword arguments specific to upsert operation.
 
@@ -777,12 +776,12 @@ class KineticaVectorDBService(VectorDBService):
 
     def delete(self, name: str, expr: str, **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
-        Delete vectors from the collection using expressions.
+        Delete vectors from the Kinetica table using expressions.
 
         Parameters
         ----------
         name : str
-            Name of the collection.
+            Name of the Kinetica table.
         expr : str
             Delete expression.
         **kwargs :  dict[str, typing.Any]
@@ -791,7 +790,7 @@ class KineticaVectorDBService(VectorDBService):
         Returns
         -------
         dict[str, typing.Any]
-            Returns result of the given keys that are delete from the collection.
+            Returns result of the given keys that are delete from the Kinetica table.
         """
 
         resource = self.load_resource(name)
@@ -801,12 +800,12 @@ class KineticaVectorDBService(VectorDBService):
 
     def retrieve_by_keys(self, name: str, keys: int | str | list, **kwargs: dict[str, typing.Any]) -> list[typing.Any]:
         """
-        Retrieve the inserted vectors using their primary keys from the Collection.
+        Retrieve the inserted vectors using their primary keys from the Kinetica table.
 
         Parameters
         ----------
         name : str
-            Name of the collection.
+            Name of the Kinetica table.
         keys : int | str | list
             Primary keys to get vectors for. Depending on pk_field type it can be int or str
             or a list of either.
@@ -816,7 +815,7 @@ class KineticaVectorDBService(VectorDBService):
         Returns
         -------
         list[typing.Any]
-            Returns result rows of the given keys from the collection.
+            Returns result rows of the given keys from the Kinetica table.
         """
 
         resource = self.load_resource(name)
@@ -827,19 +826,19 @@ class KineticaVectorDBService(VectorDBService):
 
     def count(self, name: str, **kwargs: dict[str, typing.Any]) -> int:
         """
-        Returns number of rows/entities in the given collection.
+        Returns number of rows/entities in the given Kinetica table.
 
         Parameters
         ----------
         name : str
-            Name of the collection.
+            Name of the Kinetica table.
         **kwargs :  dict[str, typing.Any]
             Additional keyword arguments for the count operation.
 
         Returns
         -------
         int
-            Returns number of entities in the collection.
+            Returns number of entities in the Kinetica table.
         """
         resource = self.load_resource(name)
 
@@ -866,10 +865,10 @@ class KineticaVectorDBService(VectorDBService):
         Raises
         ------
         ValueError
-            If mandatory arguments are missing or if the provided 'collection' value is invalid.
+            If mandatory arguments are missing or if the provided 'Kinetica table' value is invalid.
         """
 
-        logger.debug("Dropping collection: %s, kwargs=%s", name, kwargs)
+        logger.debug("Dropping Kinetica table: %s, kwargs=%s", name, kwargs)
 
         if self.has_store_object(name):
             schema = kwargs.get("schema", "ki_home")
@@ -880,19 +879,19 @@ class KineticaVectorDBService(VectorDBService):
 
     def describe(self, name: str, **kwargs: dict[str, typing.Any]) -> dict:
         """
-        Describe the collection in the vector database.
+        Describe the Kinetica table in the vector database.
 
         Parameters
         ----------
         name : str
-            Name of the collection.
+            Name of the Kinetica table.
         **kwargs : dict[str, typing.Any]
-            Additional keyword arguments specific to the Milvus vector database.
+            Additional keyword arguments specific to the Kinetica vector database.
 
         Returns
         -------
         dict
-            Returns collection information.
+            Returns Kinetica table information.
         """
 
         resource = self.load_resource(name)
